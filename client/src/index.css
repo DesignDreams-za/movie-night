@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0b0d10;
+  --color-surface: #14171c;
+  --color-surface-hover: #1c2028;
+  --color-border: #262b33;
+  --color-accent: #ec4899;
+  --color-accent-hover: #f472b6;
+  --color-online: #22c55e;
+  --color-offline: #6b7280;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-background);
+  color: #e5e7eb;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
