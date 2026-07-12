@@ -8,28 +8,43 @@ const RECONNECT_GRACE_MS = 2500
 export type PeerStatus = 'connecting' | 'connected' | 'reconnecting'
 
 // WebRTC is pairwise, so with more than two people this hook maintains one
-// RTCPeerConnection per other participant. Whichever side has the "lower"
-// socket id initiates the offer for a given pair — a simple, deterministic
-// way to avoid both sides racing to offer at once, without needing a fixed
-// "host always initiates" rule (which doesn't generalize past two peers).
-export function useVoiceChat(localStream: MediaStream | null) {
+// RTCPeerConnection per other participant, carrying both the mic track and
+// (if enabled) the camera track.
+//
+// Renegotiation (e.g. someone toggles their camera on mid-call) can be
+// triggered by either side, so this follows the standard "Perfect
+// Negotiation" pattern instead of a static "only one side ever offers"
+// rule: whoever has the "higher" socket id is "polite" for a given pair —
+// if both sides happen to create an offer at the same time, the polite
+// side rolls its own back and accepts the other's, while the impolite side
+// just ignores the incoming collision and lets its own offer proceed. The
+// impolite side still creates the peer connection eagerly on initial
+// connect; the polite side creates it lazily on first receiving an offer.
+export function useVoiceChat(localAudioStream: MediaStream | null, localVideoStream: MediaStream | null) {
   const { socket } = useSocket()
   const { room } = useRoom()
-  const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({})
+  const [remoteAudioStreams, setRemoteAudioStreams] = useState<Record<string, MediaStream>>({})
+  const [remoteVideoStreams, setRemoteVideoStreams] = useState<Record<string, MediaStream>>({})
   const [peerStatuses, setPeerStatuses] = useState<Record<string, PeerStatus>>({})
 
   const peersRef = useRef(new Map<string, RTCPeerConnection>())
-  const localStreamRef = useRef<MediaStream | null>(null)
+  const localAudioStreamRef = useRef<MediaStream | null>(null)
+  const localVideoStreamRef = useRef<MediaStream | null>(null)
   const localReadyRef = useRef(false)
   const pendingCandidatesRef = useRef(new Map<string, RTCIceCandidateInit[]>())
   const reconnectTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>())
+  const politeRef = useRef(new Map<string, boolean>())
+  const makingOfferRef = useRef(new Map<string, boolean>())
 
-  localStreamRef.current = localStream
+  localAudioStreamRef.current = localAudioStream
+  localVideoStreamRef.current = localVideoStream
 
   function removePeer(peerId: string) {
     peersRef.current.get(peerId)?.close()
     peersRef.current.delete(peerId)
     pendingCandidatesRef.current.delete(peerId)
+    politeRef.current.delete(peerId)
+    makingOfferRef.current.delete(peerId)
 
     const timer = reconnectTimersRef.current.get(peerId)
     if (timer) {
@@ -37,7 +52,13 @@ export function useVoiceChat(localStream: MediaStream | null) {
       reconnectTimersRef.current.delete(peerId)
     }
 
-    setRemoteStreams((current) => {
+    setRemoteAudioStreams((current) => {
+      if (!(peerId in current)) return current
+      const next = { ...current }
+      delete next[peerId]
+      return next
+    })
+    setRemoteVideoStreams((current) => {
       if (!(peerId in current)) return current
       const next = { ...current }
       delete next[peerId]
@@ -53,19 +74,62 @@ export function useVoiceChat(localStream: MediaStream | null) {
 
   function createPeerConnection(peerId: string) {
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
+    politeRef.current.set(peerId, (socket.id ?? '') >= peerId)
+    makingOfferRef.current.set(peerId, false)
 
-    localStreamRef.current?.getTracks().forEach((track) => {
-      pc.addTrack(track, localStreamRef.current!)
+    localAudioStreamRef.current?.getTracks().forEach((track) => {
+      pc.addTrack(track, localAudioStreamRef.current!)
+    })
+    localVideoStreamRef.current?.getTracks().forEach((track) => {
+      pc.addTrack(track, localVideoStreamRef.current!)
     })
 
     pc.ontrack = (event) => {
       const stream = event.streams[0]
-      if (stream) setRemoteStreams((current) => ({ ...current, [peerId]: stream }))
+      const track = event.track
+      if (!stream) return
+
+      if (track.kind !== 'video') {
+        setRemoteAudioStreams((current) => ({ ...current, [peerId]: stream }))
+        return
+      }
+
+      // A remote camera toggling off mid-call doesn't fire a fresh ontrack —
+      // the existing track just mutes. Toggling back on unmutes the same
+      // track rather than creating a new one, so both directions need
+      // explicit handling, not just the initial add here.
+      const addVideo = () => setRemoteVideoStreams((current) => ({ ...current, [peerId]: stream }))
+      const removeVideo = () =>
+        setRemoteVideoStreams((current) => {
+          if (!(peerId in current)) return current
+          const next = { ...current }
+          delete next[peerId]
+          return next
+        })
+
+      if (!track.muted) addVideo()
+      track.onunmute = addVideo
+      track.onmute = removeVideo
+      track.onended = removeVideo
     }
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         socket.emit('webrtc:ice-candidate', { to: peerId, candidate: event.candidate.toJSON() })
+      }
+    }
+
+    // Fires once for the initial connection (tracks added above) and again
+    // any time tracks are added/removed afterward (e.g. camera toggle) —
+    // from whichever side made that local change.
+    pc.onnegotiationneeded = async () => {
+      try {
+        makingOfferRef.current.set(peerId, true)
+        const offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
+        socket.emit('webrtc:offer', { to: peerId, sdp: offer })
+      } finally {
+        makingOfferRef.current.set(peerId, false)
       }
     }
 
@@ -85,7 +149,7 @@ export function useVoiceChat(localStream: MediaStream | null) {
             setTimeout(() => {
               reconnectTimersRef.current.delete(peerId)
               removePeer(peerId)
-              void connectToPeer(peerId)
+              connectToPeer(peerId)
             }, RECONNECT_GRACE_MS),
           )
         }
@@ -97,15 +161,11 @@ export function useVoiceChat(localStream: MediaStream | null) {
     return pc
   }
 
-  async function connectToPeer(peerId: string) {
+  function connectToPeer(peerId: string) {
     if (!localReadyRef.current) return
     if (peersRef.current.has(peerId)) return
     if ((socket.id ?? '') >= peerId) return // the other side initiates for this pair
-
-    const pc = createPeerConnection(peerId)
-    const offer = await pc.createOffer()
-    await pc.setLocalDescription(offer)
-    socket.emit('webrtc:offer', { to: peerId, sdp: offer })
+    createPeerConnection(peerId)
   }
 
   useEffect(() => {
@@ -119,6 +179,14 @@ export function useVoiceChat(localStream: MediaStream | null) {
 
     async function handleOffer({ from, sdp }: { from: string; sdp: RTCSessionDescriptionInit }) {
       const pc = peersRef.current.get(from) ?? createPeerConnection(from)
+      const isPolite = politeRef.current.get(from) ?? false
+      const isCollision = makingOfferRef.current.get(from) || pc.signalingState !== 'stable'
+
+      if (isCollision && !isPolite) return // impolite side ignores the collision, its own offer wins
+
+      if (isCollision && isPolite) {
+        await pc.setLocalDescription({ type: 'rollback' })
+      }
       await pc.setRemoteDescription(sdp)
       await flushPending(from, pc)
       const answer = await pc.createAnswer()
@@ -151,11 +219,11 @@ export function useVoiceChat(localStream: MediaStream | null) {
     }
 
     function handleVoiceReady({ userId }: { userId: string }) {
-      void connectToPeer(userId)
+      connectToPeer(userId)
     }
 
     function handlePeersReady({ userIds }: { userIds: string[] }) {
-      userIds.forEach((id) => void connectToPeer(id))
+      userIds.forEach((id) => connectToPeer(id))
     }
 
     function handleUserLeft(userId: string) {
@@ -180,12 +248,28 @@ export function useVoiceChat(localStream: MediaStream | null) {
   }, [socket])
 
   useEffect(() => {
-    if (localStream && (room?.users.length ?? 0) >= 2 && !localReadyRef.current) {
+    if (localAudioStream && (room?.users.length ?? 0) >= 2 && !localReadyRef.current) {
       localReadyRef.current = true
       socket.emit('voice:ready')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localStream, room?.users.length])
+  }, [localAudioStream, room?.users.length])
+
+  // Add/remove/replace the video track on every existing connection whenever
+  // the local camera stream changes (toggled on, off, or swapped).
+  useEffect(() => {
+    const newTrack = localVideoStream?.getVideoTracks()[0] ?? null
+    peersRef.current.forEach((pc) => {
+      const videoSender = pc.getSenders().find((sender) => sender.track?.kind === 'video')
+      if (newTrack && !videoSender) {
+        pc.addTrack(newTrack, localVideoStream!)
+      } else if (!newTrack && videoSender) {
+        pc.removeTrack(videoSender)
+      } else if (newTrack && videoSender && videoSender.track !== newTrack) {
+        void videoSender.replaceTrack(newTrack)
+      }
+    })
+  }, [localVideoStream])
 
   useEffect(() => {
     const peers = peersRef.current
@@ -197,5 +281,5 @@ export function useVoiceChat(localStream: MediaStream | null) {
     }
   }, [])
 
-  return { remoteStreams, peerStatuses }
+  return { remoteAudioStreams, remoteVideoStreams, peerStatuses }
 }

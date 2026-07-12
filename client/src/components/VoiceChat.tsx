@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { useMicrophone } from '../hooks/useMicrophone'
 import { useAudioLevel } from '../hooks/useAudioLevel'
-import { useVoiceChat, type PeerStatus } from '../hooks/useVoiceChat'
+import type { useMicrophone } from '../hooks/useMicrophone'
+import type { PeerStatus } from '../hooks/useVoiceChat'
 import { useModeration } from '../hooks/useModeration'
 import { useRoom } from '../contexts/RoomContext'
 import { PersonAvatar } from './PersonAvatar'
@@ -40,11 +40,15 @@ function RemoteParticipant({ name, stream, status, volume, onForceMute }: Remote
   )
 }
 
-export function VoiceChat() {
+interface VoiceChatProps {
+  mic: ReturnType<typeof useMicrophone>
+  remoteAudioStreams: Record<string, MediaStream>
+  peerStatuses: Record<string, PeerStatus>
+}
+
+export function VoiceChat({ mic, remoteAudioStreams, peerStatuses }: VoiceChatProps) {
   const { room, you } = useRoom()
   const { muteUser } = useModeration()
-  const mic = useMicrophone()
-  const { remoteStreams, peerStatuses } = useVoiceChat(mic.stream)
   const isSpeakingLocally = useAudioLevel(mic.stream)
   const [volume, setVolume] = useState(1)
 
@@ -73,7 +77,7 @@ export function VoiceChat() {
           <RemoteParticipant
             key={user.id}
             name={user.name}
-            stream={remoteStreams[user.id] ?? null}
+            stream={remoteAudioStreams[user.id] ?? null}
             status={peerStatuses[user.id]}
             volume={volume}
             onForceMute={you?.isHost ? () => muteUser(user.id) : undefined}

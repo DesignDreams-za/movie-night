@@ -4,8 +4,12 @@ import { useRoom } from '../contexts/RoomContext'
 import { UserBadge } from '../components/UserBadge'
 import { VideoPlayer } from '../components/VideoPlayer'
 import { VoiceChat } from '../components/VoiceChat'
+import { WebcamBubbles } from '../components/WebcamBubbles'
 import { ChatBox } from '../components/ChatBox'
 import { useModeration } from '../hooks/useModeration'
+import { useMicrophone } from '../hooks/useMicrophone'
+import { useCamera } from '../hooks/useCamera'
+import { useVoiceChat } from '../hooks/useVoiceChat'
 import { PrivacyLink } from '../components/PrivacyLink'
 import { RoomCodeChip } from '../components/RoomCodeChip'
 
@@ -14,6 +18,17 @@ export function RoomPage() {
   const navigate = useNavigate()
   const { room, you } = useRoom()
   const { kickUser } = useModeration()
+
+  // Owned here rather than inside VoiceChat/WebcamBubbles: a call is one set
+  // of peer connections carrying both audio and video, so whatever consumes
+  // the mic must share the exact same connections as whatever consumes the
+  // camera, not create a second, competing set.
+  const mic = useMicrophone()
+  const camera = useCamera()
+  const { remoteAudioStreams, remoteVideoStreams, peerStatuses } = useVoiceChat(
+    mic.stream,
+    camera.stream,
+  )
 
   useEffect(() => {
     if (!room || room.code !== code) {
@@ -49,12 +64,14 @@ export function RoomPage() {
         <VideoPlayer />
 
         <aside className="flex w-full flex-col gap-4 lg:h-full lg:w-80 lg:shrink-0">
-          <VoiceChat />
+          <VoiceChat mic={mic} remoteAudioStreams={remoteAudioStreams} peerStatuses={peerStatuses} />
           <div className="min-h-0 lg:flex-1">
             <ChatBox />
           </div>
         </aside>
       </div>
+
+      <WebcamBubbles camera={camera} remoteVideoStreams={remoteVideoStreams} />
 
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-600">Signed in as {you?.name}</p>

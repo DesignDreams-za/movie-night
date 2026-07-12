@@ -220,3 +220,41 @@ export function HashIcon({ className }: IconProps) {
     </svg>
   )
 }
+
+export function CameraIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none">
+      <rect x="2.5" y="6.5" width="14" height="11" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="M16.5 10.5l5-2.5v8l-5-2.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+export function CameraOffIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none">
+      <rect
+        x="2.5"
+        y="6.5"
+        width="14"
+        height="11"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        opacity="0.9"
+      />
+      <path
+        d="M16.5 10.5l5-2.5v8l-5-2.5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M3 3l18 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
