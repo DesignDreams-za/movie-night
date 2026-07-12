@@ -4,7 +4,6 @@ import { useRoom } from '../contexts/RoomContext'
 import { UserBadge } from '../components/UserBadge'
 import { VideoPlayer } from '../components/VideoPlayer'
 import { VoiceChat } from '../components/VoiceChat'
-import { WebcamBubbles } from '../components/WebcamBubbles'
 import { ChatBox } from '../components/ChatBox'
 import { useModeration } from '../hooks/useModeration'
 import { useMicrophone } from '../hooks/useMicrophone'
@@ -64,14 +63,18 @@ export function RoomPage() {
         <VideoPlayer />
 
         <aside className="flex w-full flex-col gap-4 lg:h-full lg:w-80 lg:shrink-0">
-          <VoiceChat mic={mic} remoteAudioStreams={remoteAudioStreams} peerStatuses={peerStatuses} />
+          <VoiceChat
+            mic={mic}
+            camera={camera}
+            remoteAudioStreams={remoteAudioStreams}
+            remoteVideoStreams={remoteVideoStreams}
+            peerStatuses={peerStatuses}
+          />
           <div className="min-h-0 lg:flex-1">
             <ChatBox />
           </div>
         </aside>
       </div>
-
-      <WebcamBubbles camera={camera} remoteVideoStreams={remoteVideoStreams} />
 
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-600">Signed in as {you?.name}</p>

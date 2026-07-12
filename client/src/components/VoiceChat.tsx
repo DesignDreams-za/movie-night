@@ -1,27 +1,36 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAudioLevel } from '../hooks/useAudioLevel'
 import type { useMicrophone } from '../hooks/useMicrophone'
+import type { useCamera } from '../hooks/useCamera'
 import type { PeerStatus } from '../hooks/useVoiceChat'
 import { useModeration } from '../hooks/useModeration'
 import { useRoom } from '../contexts/RoomContext'
 import { PersonAvatar } from './PersonAvatar'
-import { MicIcon, MicOffIcon, VolumeIcon } from './icons'
+import { CameraIcon, CameraOffIcon, MicIcon, MicOffIcon, VolumeIcon } from './icons'
 
 interface RemoteParticipantProps {
   name: string
-  stream: MediaStream | null
+  audioStream: MediaStream | null
+  videoStream: MediaStream | null
   status: PeerStatus | undefined
   volume: number
   onForceMute?: () => void
 }
 
-function RemoteParticipant({ name, stream, status, volume, onForceMute }: RemoteParticipantProps) {
-  const isSpeaking = useAudioLevel(stream)
+function RemoteParticipant({
+  name,
+  audioStream,
+  videoStream,
+  status,
+  volume,
+  onForceMute,
+}: RemoteParticipantProps) {
+  const isSpeaking = useAudioLevel(audioStream)
   const audioRef = useRef<HTMLAudioElement>(null)
 
   useEffect(() => {
-    if (audioRef.current) audioRef.current.srcObject = stream
-  }, [stream])
+    if (audioRef.current) audioRef.current.srcObject = audioStream
+  }, [audioStream])
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume
@@ -34,6 +43,7 @@ function RemoteParticipant({ name, stream, status, volume, onForceMute }: Remote
         isSpeaking={isSpeaking}
         isOnline={status === 'connected'}
         onForceMute={onForceMute}
+        videoStream={videoStream}
       />
       <audio ref={audioRef} autoPlay />
     </>
@@ -42,11 +52,19 @@ function RemoteParticipant({ name, stream, status, volume, onForceMute }: Remote
 
 interface VoiceChatProps {
   mic: ReturnType<typeof useMicrophone>
+  camera: ReturnType<typeof useCamera>
   remoteAudioStreams: Record<string, MediaStream>
+  remoteVideoStreams: Record<string, MediaStream>
   peerStatuses: Record<string, PeerStatus>
 }
 
-export function VoiceChat({ mic, remoteAudioStreams, peerStatuses }: VoiceChatProps) {
+export function VoiceChat({
+  mic,
+  camera,
+  remoteAudioStreams,
+  remoteVideoStreams,
+  peerStatuses,
+}: VoiceChatProps) {
   const { room, you } = useRoom()
   const { muteUser } = useModeration()
   const isSpeakingLocally = useAudioLevel(mic.stream)
@@ -72,12 +90,15 @@ export function VoiceChat({ mic, remoteAudioStreams, peerStatuses }: VoiceChatPr
           name={you?.name ?? 'You'}
           isSpeaking={isSpeakingLocally}
           isOnline={!!mic.stream}
+          videoStream={camera.stream}
+          mirrored
         />
         {others.map((user) => (
           <RemoteParticipant
             key={user.id}
             name={user.name}
-            stream={remoteAudioStreams[user.id] ?? null}
+            audioStream={remoteAudioStreams[user.id] ?? null}
+            videoStream={remoteVideoStreams[user.id] ?? null}
             status={peerStatuses[user.id]}
             volume={volume}
             onForceMute={you?.isHost ? () => muteUser(user.id) : undefined}
@@ -85,7 +106,7 @@ export function VoiceChat({ mic, remoteAudioStreams, peerStatuses }: VoiceChatPr
         ))}
       </div>
 
-      <div className="flex items-center gap-3 border-t border-border pt-3">
+      <div className="flex items-center gap-2 border-t border-border pt-3">
         <button
           type="button"
           onClick={mic.toggleMute}
@@ -98,6 +119,23 @@ export function VoiceChat({ mic, remoteAudioStreams, peerStatuses }: VoiceChatPr
           }`}
         >
           {mic.isMuted ? <MicOffIcon className="h-4 w-4" /> : <MicIcon className="h-4 w-4" />}
+        </button>
+
+        <button
+          type="button"
+          onClick={camera.toggle}
+          title={camera.isEnabled ? 'Turn off camera' : 'Turn on camera'}
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition ${
+            camera.isEnabled
+              ? 'border-accent/40 bg-accent/15 text-accent'
+              : 'border-border text-gray-200 hover:bg-surface-hover'
+          }`}
+        >
+          {camera.isEnabled ? (
+            <CameraOffIcon className="h-4 w-4" />
+          ) : (
+            <CameraIcon className="h-4 w-4" />
+          )}
         </button>
 
         <div className="flex flex-1 items-center gap-1.5">
