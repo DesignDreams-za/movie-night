@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #0b0d10;
-  --color-surface: #14171c;
-  --color-surface-hover: #1c2028;
-  --color-border: #262b33;
+  --color-background: #07080a;
+  --color-surface: #101216;
+  --color-surface-hover: #191c22;
+  --color-border: #22262e;
   --color-accent: #ec4899;
   --color-accent-hover: #f472b6;
   --color-online: #22c55e;
-  --color-offline: #6b7280;
+  --color-offline: #52525b;
 }
 
 html,
@@ -20,10 +20,50 @@ body,
 body {
   margin: 0;
   background-color: var(--color-background);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(236, 72, 153, 0.08), transparent),
+    radial-gradient(ellipse 60% 50% at 100% 100%, rgba(139, 92, 246, 0.06), transparent);
+  background-attachment: fixed;
   color: #e5e7eb;
   font-family:
     'Inter',
     system-ui,
     -apple-system,
     sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(236, 72, 153, 0.35);
+}
+
+/* Slim, quiet scrollbars that only draw attention on hover */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2e37 transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2a2e37;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #3a3f4b;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

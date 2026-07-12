@@ -20,9 +20,13 @@ function ToastBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolean 
 
   return (
     <div
-      className={`max-w-full self-end rounded-lg px-3 py-1.5 text-xs shadow-lg backdrop-blur transition-all duration-500 ${
+      className={`max-w-full self-end rounded-2xl px-3 py-1.5 text-xs shadow-lg backdrop-blur transition-all duration-500 ${
         visible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
-      } ${isOwn ? 'bg-accent/90 text-white' : 'bg-black/60 text-gray-100'}`}
+      } ${
+        isOwn
+          ? 'rounded-br-md bg-gradient-to-br from-accent/90 to-rose-600/90 text-white'
+          : 'rounded-bl-md bg-black/65 text-gray-100'
+      }`}
     >
       {!isOwn && <div className="mb-0.5 text-[10px] font-medium text-gray-300">{message.name}</div>}
       {message.text}
