@@ -1,50 +1,64 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useChat } from '../hooks/useChat'
 import { useRoom } from '../contexts/RoomContext'
+import type { ChatMessage } from '../types/room'
 
-const VISIBLE_MESSAGE_COUNT = 5
+const VISIBLE_MS = 4500
+const REMOVE_MS = 5000
 
-export function FullscreenChatOverlay() {
-  const { you } = useRoom()
-  const { messages, sendMessage } = useChat()
-  const [draft, setDraft] = useState('')
-  const recent = messages.slice(-VISIBLE_MESSAGE_COUNT)
+function ToastBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolean }) {
+  const [visible, setVisible] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!draft.trim()) return
-    sendMessage(draft)
-    setDraft('')
-  }
+  useEffect(() => {
+    const showFrame = requestAnimationFrame(() => setVisible(true))
+    const hideTimer = setTimeout(() => setVisible(false), VISIBLE_MS)
+    return () => {
+      cancelAnimationFrame(showFrame)
+      clearTimeout(hideTimer)
+    }
+  }, [])
 
   return (
-    <div className="absolute bottom-16 right-4 z-30 flex w-64 flex-col gap-1.5">
-      {recent.map((message) => {
-        const isOwn = message.userId === you?.id
-        return (
-          <div
-            key={message.id}
-            className={`max-w-full self-end rounded-lg px-3 py-1.5 text-xs shadow-lg backdrop-blur ${
-              isOwn ? 'bg-accent/90 text-white' : 'bg-black/60 text-gray-100'
-            }`}
-          >
-            {!isOwn && (
-              <div className="mb-0.5 text-[10px] font-medium text-gray-300">{message.name}</div>
-            )}
-            {message.text}
-          </div>
-        )
-      })}
+    <div
+      className={`max-w-full self-end rounded-lg px-3 py-1.5 text-xs shadow-lg backdrop-blur transition-all duration-500 ${
+        visible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
+      } ${isOwn ? 'bg-accent/90 text-white' : 'bg-black/60 text-gray-100'}`}
+    >
+      {!isOwn && <div className="mb-0.5 text-[10px] font-medium text-gray-300">{message.name}</div>}
+      {message.text}
+    </div>
+  )
+}
 
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Message…"
-          className="w-full rounded-md border border-white/10 bg-black/60 px-2.5 py-1.5 text-xs text-gray-100 outline-none backdrop-blur placeholder:text-gray-500 focus:border-accent"
-        />
-      </form>
+// View-only: sending a message while fullscreen means exiting fullscreen
+// and using the normal chat panel. This overlay just surfaces new messages
+// as brief, auto-dismissing notifications so you don't miss one.
+export function FullscreenChatOverlay() {
+  const { you } = useRoom()
+  const { messages } = useChat()
+  const [toasts, setToasts] = useState<ChatMessage[]>([])
+  const seenCountRef = useRef(messages.length)
+
+  useEffect(() => {
+    if (messages.length > seenCountRef.current) {
+      const newMessages = messages.slice(seenCountRef.current)
+      setToasts((current) => [...current, ...newMessages])
+      newMessages.forEach((message) => {
+        setTimeout(() => {
+          setToasts((current) => current.filter((toast) => toast.id !== message.id))
+        }, REMOVE_MS)
+      })
+    }
+    seenCountRef.current = messages.length
+  }, [messages])
+
+  if (toasts.length === 0) return null
+
+  return (
+    <div className="pointer-events-none absolute bottom-16 right-4 z-30 flex w-64 flex-col gap-1.5">
+      {toasts.map((message) => (
+        <ToastBubble key={message.id} message={message} isOwn={message.userId === you?.id} />
+      ))}
     </div>
   )
 }
