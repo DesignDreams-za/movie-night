@@ -30,6 +30,11 @@ export interface VideoSyncPayload {
   isPlaying: boolean
 }
 
+export interface VideoFileLoadedPayload {
+  name: string
+  fileName: string
+}
+
 export interface WebRTCOfferOutgoing {
   to: string
   sdp: RTCSessionDescriptionInit
@@ -89,6 +94,7 @@ export interface ServerToClientEvents {
   'video:pause': (payload: VideoPausePayload) => void
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
+  'video:file-loaded': (payload: VideoFileLoadedPayload) => void
   'voice:ready': (payload: VoiceReadyBroadcast) => void
   'voice:peers-ready': (payload: VoicePeersReadyPayload) => void
   'webrtc:offer': (payload: WebRTCOfferIncoming) => void
@@ -110,6 +116,7 @@ export interface ClientToServerEvents {
   'video:pause': (payload: VideoPausePayload) => void
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
+  'video:file-loaded': (payload: { fileName: string }) => void
   'voice:ready': () => void
   'webrtc:offer': (payload: WebRTCOfferOutgoing) => void
   'webrtc:answer': (payload: WebRTCAnswerOutgoing) => void

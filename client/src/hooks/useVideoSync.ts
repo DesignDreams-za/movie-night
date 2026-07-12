@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSocket } from '../contexts/SocketContext'
 import { useRoom } from '../contexts/RoomContext'
 import type { useVideoPlayer } from './useVideoPlayer'
+import type { VideoFileLoadedPayload } from '../types/room'
 
 const DRIFT_THRESHOLD_SECONDS = 0.3
 const SYNC_INTERVAL_MS = 4000
@@ -12,6 +13,8 @@ const SYNC_INTERVAL_MS = 4000
 export function useVideoSync(player: ReturnType<typeof useVideoPlayer>) {
   const { socket } = useSocket()
   const { you } = useRoom()
+  const [otherFileInfo, setOtherFileInfo] = useState<VideoFileLoadedPayload | null>(null)
+  const lastAnnouncedFileRef = useRef<string | null>(null)
 
   useEffect(() => {
     function handleRemotePlay({ currentTime }: { currentTime: number }) {
@@ -46,16 +49,22 @@ export function useVideoSync(player: ReturnType<typeof useVideoPlayer>) {
       if (!isPlaying && !video.paused) video.pause()
     }
 
+    function handleRemoteFileLoaded(payload: VideoFileLoadedPayload) {
+      setOtherFileInfo(payload)
+    }
+
     socket.on('video:play', handleRemotePlay)
     socket.on('video:pause', handleRemotePause)
     socket.on('video:seek', handleRemoteSeek)
     socket.on('video:sync', handleRemoteSync)
+    socket.on('video:file-loaded', handleRemoteFileLoaded)
 
     return () => {
       socket.off('video:play', handleRemotePlay)
       socket.off('video:pause', handleRemotePause)
       socket.off('video:seek', handleRemoteSeek)
       socket.off('video:sync', handleRemoteSync)
+      socket.off('video:file-loaded', handleRemoteFileLoaded)
     }
   }, [socket, player.videoRef])
 
@@ -68,6 +77,15 @@ export function useVideoSync(player: ReturnType<typeof useVideoPlayer>) {
     }, SYNC_INTERVAL_MS)
     return () => clearInterval(interval)
   }, [you?.isHost, socket, player.videoRef])
+
+  // Tell the other person what file you just loaded — the file itself never
+  // leaves this device, but they need to know its name to grab the same one.
+  useEffect(() => {
+    if (player.fileName && player.fileName !== lastAnnouncedFileRef.current) {
+      lastAnnouncedFileRef.current = player.fileName
+      socket.emit('video:file-loaded', { fileName: player.fileName })
+    }
+  }, [player.fileName, socket])
 
   function handleTogglePlay() {
     const video = player.videoRef.current
@@ -86,5 +104,5 @@ export function useVideoSync(player: ReturnType<typeof useVideoPlayer>) {
     socket.emit('video:seek', { time })
   }
 
-  return { handleTogglePlay, handleSeek }
+  return { handleTogglePlay, handleSeek, otherFileInfo }
 }

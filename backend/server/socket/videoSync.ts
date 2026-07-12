@@ -1,4 +1,5 @@
 import type { Socket } from 'socket.io'
+import { getRoom } from './roomStore.js'
 import type { ClientToServerEvents, ServerToClientEvents, SocketData } from './types.js'
 
 type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents, object, SocketData>
@@ -25,5 +26,13 @@ export function registerVideoSyncHandlers(socket: TypedSocket) {
   socket.on('video:sync', (payload) => {
     const code = socket.data.roomCode
     if (code) socket.to(code).emit('video:sync', payload)
+  })
+
+  socket.on('video:file-loaded', ({ fileName }) => {
+    const code = socket.data.roomCode
+    if (!code) return
+    const sender = getRoom(code)?.users.find((user) => user.id === socket.id)
+    if (!sender) return
+    socket.to(code).emit('video:file-loaded', { name: sender.name, fileName })
   })
 }

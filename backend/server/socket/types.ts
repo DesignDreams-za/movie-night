@@ -30,6 +30,13 @@ export interface VideoSyncPayload {
   isPlaying: boolean
 }
 
+// The file itself never leaves the device it was loaded on -- this just
+// tells the other person its name so they know what to load on their end.
+export interface VideoFileLoadedPayload {
+  name: string
+  fileName: string
+}
+
 // WebRTC is peer-to-peer, so with more than two people in a room, offers/
 // answers/ICE candidates must be routed to a specific peer rather than
 // broadcast to the whole room. The server never inspects SDP/ICE contents,
@@ -98,6 +105,7 @@ export interface ServerToClientEvents {
   'video:pause': (payload: VideoPausePayload) => void
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
+  'video:file-loaded': (payload: VideoFileLoadedPayload) => void
   'voice:ready': (payload: VoiceReadyBroadcast) => void
   'voice:peers-ready': (payload: VoicePeersReadyPayload) => void
   'webrtc:offer': (payload: WebRTCOfferIncoming) => void
@@ -119,6 +127,7 @@ export interface ClientToServerEvents {
   'video:pause': (payload: VideoPausePayload) => void
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
+  'video:file-loaded': (payload: { fileName: string }) => void
   'voice:ready': () => void
   'webrtc:offer': (payload: WebRTCOfferOutgoing) => void
   'webrtc:answer': (payload: WebRTCAnswerOutgoing) => void

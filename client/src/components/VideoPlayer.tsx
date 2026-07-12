@@ -101,13 +101,26 @@ export function VideoPlayer() {
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-gray-500 transition hover:text-gray-300"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-gray-500 transition hover:text-gray-300"
         >
           <span className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-gray-700 transition group-hover:border-accent/60 group-hover:text-accent">
             <FilmIcon className="h-6 w-6" />
           </span>
-          <span className="text-sm font-medium">Drag and drop a movie file here</span>
-          <span className="text-xs text-gray-600">or click to browse</span>
+          {sync.otherFileInfo ? (
+            <>
+              <span className="text-sm font-medium text-gray-300">
+                {sync.otherFileInfo.name} loaded &ldquo;{sync.otherFileInfo.fileName}&rdquo;
+              </span>
+              <span className="text-xs text-gray-600">
+                Drop the same file here so you're both watching it
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="text-sm font-medium">Drag and drop a movie file here</span>
+              <span className="text-xs text-gray-600">or click to browse</span>
+            </>
+          )}
         </button>
       )}
 
