@@ -19,6 +19,6 @@ const io = new Server(httpServer, {
 
 registerSocketHandlers(io)
 
-httpServer.listen(PORT, () => {
+httpServer.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`Movie Night server listening on http://localhost:${PORT}`)
 })
