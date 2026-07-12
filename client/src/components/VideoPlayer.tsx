@@ -65,7 +65,7 @@ export function VideoPlayer() {
       }}
       onDragLeave={() => setIsDraggingOver(false)}
       onDrop={handleDrop}
-      className={`group relative flex min-h-[320px] flex-1 flex-col justify-end overflow-hidden rounded-xl border bg-black transition-colors ${
+      className={`group relative flex min-h-[320px] flex-1 flex-col justify-end overflow-hidden rounded-xl border bg-black transition-colors lg:h-full ${
         isDraggingOver ? 'border-accent' : 'border-border'
       } ${player.fileName && !showChrome ? 'cursor-none' : ''}`}
     >

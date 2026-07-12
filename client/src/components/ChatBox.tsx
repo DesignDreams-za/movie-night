@@ -25,8 +25,11 @@ export function ChatBox() {
   }
 
   return (
-    <section className="flex flex-col rounded-xl border border-border bg-surface p-3.5 shadow-lg shadow-black/20">
-      <div ref={listRef} className="mb-2 flex max-h-56 flex-col gap-2.5 overflow-y-auto">
+    <section className="flex flex-col rounded-xl border border-border bg-surface p-3.5 shadow-lg shadow-black/20 lg:h-full">
+      <div
+        ref={listRef}
+        className="mb-2 flex max-h-64 flex-col gap-2.5 overflow-y-auto lg:max-h-none lg:min-h-0 lg:flex-1"
+      >
         {messages.length === 0 && (
           <p className="py-1 text-xs text-gray-600">No messages yet — say hi 👋</p>
         )}

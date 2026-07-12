@@ -24,7 +24,7 @@ export function RoomPage() {
   if (!room || room.code !== code) return null
 
   return (
-    <div className="flex min-h-full flex-col gap-4 p-4">
+    <div className="flex min-h-full flex-col gap-4 p-4 lg:h-full">
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-lg shadow-black/20">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-semibold tracking-tight text-gray-100">Movie Night ❤️</h1>
@@ -45,13 +45,15 @@ export function RoomPage() {
         </div>
       </header>
 
-      <VideoPlayer />
+      <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
+        <VideoPlayer />
 
-      <div className="flex items-start gap-4">
-        <VoiceChat />
-        <div className="min-w-0 flex-1">
-          <ChatBox />
-        </div>
+        <aside className="flex w-full flex-col gap-4 lg:h-full lg:w-80 lg:shrink-0">
+          <VoiceChat />
+          <div className="min-h-0 lg:flex-1">
+            <ChatBox />
+          </div>
+        </aside>
       </div>
 
       <div className="flex items-center justify-between">
