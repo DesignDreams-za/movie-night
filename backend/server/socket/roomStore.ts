@@ -1,9 +1,10 @@
 import { generateRoomCode } from './roomCode.js'
 import type { RoomState, RoomUser } from './types.js'
 
-export const MAX_USERS_PER_ROOM = 2
+export const MAX_USERS_PER_ROOM = 6
 
 const rooms = new Map<string, RoomState>()
+const readyUsersByRoom = new Map<string, Set<string>>()
 
 export function getRoom(code: string): RoomState | undefined {
   return rooms.get(code)
@@ -32,10 +33,27 @@ export function removeUserBySocketId(socketId: string): { code: string; userId: 
     if (index === -1) continue
 
     room.users.splice(index, 1)
+    readyUsersByRoom.get(room.code)?.delete(socketId)
+
     if (room.users.length === 0) {
       rooms.delete(room.code)
+      readyUsersByRoom.delete(room.code)
     }
     return { code: room.code, userId: socketId }
   }
   return undefined
+}
+
+// Marks a user as voice-ready and returns everyone in the room who was
+// already ready before this call, so the newly-ready client can initiate
+// handshakes with all of them immediately.
+export function markUserReady(code: string, userId: string): string[] {
+  let readySet = readyUsersByRoom.get(code)
+  if (!readySet) {
+    readySet = new Set()
+    readyUsersByRoom.set(code, readySet)
+  }
+  const alreadyReady = Array.from(readySet)
+  readySet.add(userId)
+  return alreadyReady
 }

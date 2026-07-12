@@ -29,12 +29,20 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       )
     }
 
+    function handleKicked() {
+      setRoom(null)
+      setYou(null)
+      setError('You were removed from the room by the host.')
+    }
+
     socket.on('user:joined', handleUserJoined)
     socket.on('user:left', handleUserLeft)
+    socket.on('room:kicked', handleKicked)
 
     return () => {
       socket.off('user:joined', handleUserJoined)
       socket.off('user:left', handleUserLeft)
+      socket.off('room:kicked', handleKicked)
     }
   }, [socket])
 

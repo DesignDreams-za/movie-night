@@ -30,18 +30,47 @@ export interface VideoSyncPayload {
   isPlaying: boolean
 }
 
-// The server never inspects SDP/ICE contents, so these are typed loosely
-// here; the client types the same events with real DOM WebRTC types.
-export interface WebRTCOfferPayload {
+// WebRTC is peer-to-peer, so with more than two people in a room, offers/
+// answers/ICE candidates must be routed to a specific peer rather than
+// broadcast to the whole room. The server never inspects SDP/ICE contents,
+// so they're typed loosely here; the client types the same events with
+// real DOM WebRTC types.
+export interface WebRTCOfferOutgoing {
+  to: string
   sdp: unknown
 }
 
-export interface WebRTCAnswerPayload {
+export interface WebRTCOfferIncoming {
+  from: string
   sdp: unknown
 }
 
-export interface WebRTCIceCandidatePayload {
+export interface WebRTCAnswerOutgoing {
+  to: string
+  sdp: unknown
+}
+
+export interface WebRTCAnswerIncoming {
+  from: string
+  sdp: unknown
+}
+
+export interface WebRTCIceCandidateOutgoing {
+  to: string
   candidate: unknown
+}
+
+export interface WebRTCIceCandidateIncoming {
+  from: string
+  candidate: unknown
+}
+
+export interface VoiceReadyBroadcast {
+  userId: string
+}
+
+export interface VoicePeersReadyPayload {
+  userIds: string[]
 }
 
 export interface ChatMessage {
@@ -63,11 +92,14 @@ export interface ServerToClientEvents {
   'video:pause': (payload: VideoPausePayload) => void
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
-  'voice:ready': () => void
-  'webrtc:offer': (payload: WebRTCOfferPayload) => void
-  'webrtc:answer': (payload: WebRTCAnswerPayload) => void
-  'webrtc:ice-candidate': (payload: WebRTCIceCandidatePayload) => void
+  'voice:ready': (payload: VoiceReadyBroadcast) => void
+  'voice:peers-ready': (payload: VoicePeersReadyPayload) => void
+  'webrtc:offer': (payload: WebRTCOfferIncoming) => void
+  'webrtc:answer': (payload: WebRTCAnswerIncoming) => void
+  'webrtc:ice-candidate': (payload: WebRTCIceCandidateIncoming) => void
   'chat:message': (message: ChatMessage) => void
+  'room:kicked': () => void
+  'room:force-muted': () => void
 }
 
 export interface ClientToServerEvents {
@@ -81,8 +113,10 @@ export interface ClientToServerEvents {
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
   'voice:ready': () => void
-  'webrtc:offer': (payload: WebRTCOfferPayload) => void
-  'webrtc:answer': (payload: WebRTCAnswerPayload) => void
-  'webrtc:ice-candidate': (payload: WebRTCIceCandidatePayload) => void
+  'webrtc:offer': (payload: WebRTCOfferOutgoing) => void
+  'webrtc:answer': (payload: WebRTCAnswerOutgoing) => void
+  'webrtc:ice-candidate': (payload: WebRTCIceCandidateOutgoing) => void
   'chat:message': (payload: { text: string }) => void
+  'room:kick': (payload: { userId: string }) => void
+  'room:mute-user': (payload: { userId: string }) => void
 }

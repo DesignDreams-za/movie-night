@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useRoom } from '../contexts/RoomContext'
+import { PrivacyFooter } from '../components/PrivacyFooter'
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -71,6 +72,10 @@ export function HomePage() {
         </button>
 
         {error && <p className="text-sm text-red-400">{error}</p>}
+      </div>
+
+      <div className="max-w-sm">
+        <PrivacyFooter />
       </div>
     </div>
   )

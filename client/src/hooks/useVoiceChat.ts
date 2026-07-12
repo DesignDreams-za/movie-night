@@ -5,41 +5,53 @@ import { useRoom } from '../contexts/RoomContext'
 const ICE_SERVERS: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }]
 const RECONNECT_GRACE_MS = 2500
 
-export type VoiceConnectionStatus = 'waiting' | 'connecting' | 'connected' | 'reconnecting'
+export type PeerStatus = 'connecting' | 'connected' | 'reconnecting'
 
-// The host always initiates the WebRTC offer once both people are in the
-// room and mic-ready — a fixed initiator avoids two peers racing to offer
-// at the same time. Everything else (mute, volume, speaking indicator) is
-// local-only and lives in the components/hooks that use this one.
+// WebRTC is pairwise, so with more than two people this hook maintains one
+// RTCPeerConnection per other participant. Whichever side has the "lower"
+// socket id initiates the offer for a given pair — a simple, deterministic
+// way to avoid both sides racing to offer at once, without needing a fixed
+// "host always initiates" rule (which doesn't generalize past two peers).
 export function useVoiceChat(localStream: MediaStream | null) {
   const { socket } = useSocket()
-  const { room, you } = useRoom()
-  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null)
-  const [status, setStatus] = useState<VoiceConnectionStatus>('waiting')
+  const { room } = useRoom()
+  const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({})
+  const [peerStatuses, setPeerStatuses] = useState<Record<string, PeerStatus>>({})
 
-  const pcRef = useRef<RTCPeerConnection | null>(null)
+  const peersRef = useRef(new Map<string, RTCPeerConnection>())
   const localStreamRef = useRef<MediaStream | null>(null)
-  const isHostRef = useRef(false)
-  const bothInRoomRef = useRef(false)
   const localReadyRef = useRef(false)
-  const remoteReadyRef = useRef(false)
-  const hasInitiatedRef = useRef(false)
-  const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([])
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingCandidatesRef = useRef(new Map<string, RTCIceCandidateInit[]>())
+  const reconnectTimersRef = useRef(new Map<string, ReturnType<typeof setTimeout>>())
 
   localStreamRef.current = localStream
-  isHostRef.current = !!you?.isHost
-  bothInRoomRef.current = (room?.users.length ?? 0) >= 2
 
-  function teardownPeerConnection() {
-    pcRef.current?.close()
-    pcRef.current = null
-    hasInitiatedRef.current = false
-    pendingCandidatesRef.current = []
-    setRemoteStream(null)
+  function removePeer(peerId: string) {
+    peersRef.current.get(peerId)?.close()
+    peersRef.current.delete(peerId)
+    pendingCandidatesRef.current.delete(peerId)
+
+    const timer = reconnectTimersRef.current.get(peerId)
+    if (timer) {
+      clearTimeout(timer)
+      reconnectTimersRef.current.delete(peerId)
+    }
+
+    setRemoteStreams((current) => {
+      if (!(peerId in current)) return current
+      const next = { ...current }
+      delete next[peerId]
+      return next
+    })
+    setPeerStatuses((current) => {
+      if (!(peerId in current)) return current
+      const next = { ...current }
+      delete next[peerId]
+      return next
+    })
   }
 
-  function createPeerConnection() {
+  function createPeerConnection(peerId: string) {
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
 
     localStreamRef.current?.getTracks().forEach((track) => {
@@ -47,101 +59,114 @@ export function useVoiceChat(localStream: MediaStream | null) {
     })
 
     pc.ontrack = (event) => {
-      setRemoteStream(event.streams[0] ?? null)
+      const stream = event.streams[0]
+      if (stream) setRemoteStreams((current) => ({ ...current, [peerId]: stream }))
     }
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        socket.emit('webrtc:ice-candidate', { candidate: event.candidate.toJSON() })
+        socket.emit('webrtc:ice-candidate', { to: peerId, candidate: event.candidate.toJSON() })
       }
     }
 
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'connected') {
-        setStatus('connected')
-        if (reconnectTimerRef.current) {
-          clearTimeout(reconnectTimerRef.current)
-          reconnectTimerRef.current = null
+        setPeerStatuses((current) => ({ ...current, [peerId]: 'connected' }))
+        const timer = reconnectTimersRef.current.get(peerId)
+        if (timer) {
+          clearTimeout(timer)
+          reconnectTimersRef.current.delete(peerId)
         }
       } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-        setStatus('reconnecting')
-        if (!reconnectTimerRef.current) {
-          reconnectTimerRef.current = setTimeout(() => {
-            reconnectTimerRef.current = null
-            teardownPeerConnection()
-            void maybeInitiate()
-          }, RECONNECT_GRACE_MS)
+        setPeerStatuses((current) => ({ ...current, [peerId]: 'reconnecting' }))
+        if (!reconnectTimersRef.current.has(peerId)) {
+          reconnectTimersRef.current.set(
+            peerId,
+            setTimeout(() => {
+              reconnectTimersRef.current.delete(peerId)
+              removePeer(peerId)
+              void connectToPeer(peerId)
+            }, RECONNECT_GRACE_MS),
+          )
         }
       }
     }
 
-    pcRef.current = pc
+    peersRef.current.set(peerId, pc)
+    setPeerStatuses((current) => ({ ...current, [peerId]: 'connecting' }))
     return pc
   }
 
-  async function maybeInitiate() {
-    if (!isHostRef.current) return
-    if (!localReadyRef.current || !remoteReadyRef.current) return
-    if (hasInitiatedRef.current) return
-    hasInitiatedRef.current = true
+  async function connectToPeer(peerId: string) {
+    if (!localReadyRef.current) return
+    if (peersRef.current.has(peerId)) return
+    if ((socket.id ?? '') >= peerId) return // the other side initiates for this pair
 
-    setStatus('connecting')
-    const pc = createPeerConnection()
+    const pc = createPeerConnection(peerId)
     const offer = await pc.createOffer()
     await pc.setLocalDescription(offer)
-    socket.emit('webrtc:offer', { sdp: offer })
+    socket.emit('webrtc:offer', { to: peerId, sdp: offer })
   }
 
   useEffect(() => {
-    async function flushPendingCandidates(pc: RTCPeerConnection) {
-      for (const candidate of pendingCandidatesRef.current) {
+    async function flushPending(peerId: string, pc: RTCPeerConnection) {
+      const pending = pendingCandidatesRef.current.get(peerId) ?? []
+      for (const candidate of pending) {
         await pc.addIceCandidate(candidate)
       }
-      pendingCandidatesRef.current = []
+      pendingCandidatesRef.current.delete(peerId)
     }
 
-    async function handleOffer({ sdp }: { sdp: RTCSessionDescriptionInit }) {
-      setStatus('connecting')
-      const pc = pcRef.current ?? createPeerConnection()
+    async function handleOffer({ from, sdp }: { from: string; sdp: RTCSessionDescriptionInit }) {
+      const pc = peersRef.current.get(from) ?? createPeerConnection(from)
       await pc.setRemoteDescription(sdp)
-      await flushPendingCandidates(pc)
+      await flushPending(from, pc)
       const answer = await pc.createAnswer()
       await pc.setLocalDescription(answer)
-      socket.emit('webrtc:answer', { sdp: answer })
+      socket.emit('webrtc:answer', { to: from, sdp: answer })
     }
 
-    async function handleAnswer({ sdp }: { sdp: RTCSessionDescriptionInit }) {
-      const pc = pcRef.current
+    async function handleAnswer({ from, sdp }: { from: string; sdp: RTCSessionDescriptionInit }) {
+      const pc = peersRef.current.get(from)
       if (!pc) return
       await pc.setRemoteDescription(sdp)
-      await flushPendingCandidates(pc)
+      await flushPending(from, pc)
     }
 
-    async function handleIceCandidate({ candidate }: { candidate: RTCIceCandidateInit }) {
-      const pc = pcRef.current
+    async function handleIceCandidate({
+      from,
+      candidate,
+    }: {
+      from: string
+      candidate: RTCIceCandidateInit
+    }) {
+      const pc = peersRef.current.get(from)
       if (!pc || !pc.remoteDescription) {
-        pendingCandidatesRef.current.push(candidate)
+        const list = pendingCandidatesRef.current.get(from) ?? []
+        list.push(candidate)
+        pendingCandidatesRef.current.set(from, list)
         return
       }
       await pc.addIceCandidate(candidate)
     }
 
-    function handleVoiceReady() {
-      remoteReadyRef.current = true
-      void maybeInitiate()
+    function handleVoiceReady({ userId }: { userId: string }) {
+      void connectToPeer(userId)
     }
 
-    function handleUserLeft() {
-      remoteReadyRef.current = false
-      localReadyRef.current = false
-      teardownPeerConnection()
-      setStatus('waiting')
+    function handlePeersReady({ userIds }: { userIds: string[] }) {
+      userIds.forEach((id) => void connectToPeer(id))
+    }
+
+    function handleUserLeft(userId: string) {
+      removePeer(userId)
     }
 
     socket.on('webrtc:offer', handleOffer)
     socket.on('webrtc:answer', handleAnswer)
     socket.on('webrtc:ice-candidate', handleIceCandidate)
     socket.on('voice:ready', handleVoiceReady)
+    socket.on('voice:peers-ready', handlePeersReady)
     socket.on('user:left', handleUserLeft)
 
     return () => {
@@ -149,25 +174,28 @@ export function useVoiceChat(localStream: MediaStream | null) {
       socket.off('webrtc:answer', handleAnswer)
       socket.off('webrtc:ice-candidate', handleIceCandidate)
       socket.off('voice:ready', handleVoiceReady)
+      socket.off('voice:peers-ready', handlePeersReady)
       socket.off('user:left', handleUserLeft)
     }
   }, [socket])
 
   useEffect(() => {
-    if (localStream && bothInRoomRef.current && !localReadyRef.current) {
+    if (localStream && (room?.users.length ?? 0) >= 2 && !localReadyRef.current) {
       localReadyRef.current = true
       socket.emit('voice:ready')
-      void maybeInitiate()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localStream, room?.users.length])
 
   useEffect(() => {
+    const peers = peersRef.current
+    const timers = reconnectTimersRef.current
     return () => {
-      teardownPeerConnection()
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
+      peers.forEach((pc) => pc.close())
+      peers.clear()
+      timers.forEach((timer) => clearTimeout(timer))
     }
   }, [])
 
-  return { remoteStream, status }
+  return { remoteStreams, peerStatuses }
 }

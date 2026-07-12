@@ -5,11 +5,14 @@ import { UserBadge } from '../components/UserBadge'
 import { VideoPlayer } from '../components/VideoPlayer'
 import { VoiceChat } from '../components/VoiceChat'
 import { ChatBox } from '../components/ChatBox'
+import { useModeration } from '../hooks/useModeration'
+import { PrivacyFooter } from '../components/PrivacyFooter'
 
 export function RoomPage() {
   const { code } = useParams<{ code: string }>()
   const navigate = useNavigate()
   const { room, you } = useRoom()
+  const { kickUser } = useModeration()
 
   useEffect(() => {
     if (!room || room.code !== code) {
@@ -30,7 +33,12 @@ export function RoomPage() {
         </div>
         <div className="flex items-center gap-4">
           {room.users.map((user) => (
-            <UserBadge key={user.id} name={user.name} online={true} />
+            <UserBadge
+              key={user.id}
+              name={user.name}
+              online={true}
+              onKick={you?.isHost && user.id !== you.id ? () => kickUser(user.id) : undefined}
+            />
           ))}
           {room.users.length < 2 && <UserBadge name="Waiting for the other person…" online={false} />}
         </div>
@@ -46,6 +54,7 @@ export function RoomPage() {
       </div>
 
       <p className="text-xs text-gray-600">Signed in as {you?.name}</p>
+      <PrivacyFooter />
     </div>
   )
 }

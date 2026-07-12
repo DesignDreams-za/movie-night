@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSocket } from '../contexts/SocketContext'
 
 export function useMicrophone() {
+  const { socket } = useSocket()
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isMuted, setIsMuted] = useState(false)
@@ -29,6 +31,21 @@ export function useMicrophone() {
       streamRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    function handleForceMuted() {
+      if (!streamRef.current) return
+      streamRef.current.getAudioTracks().forEach((track) => {
+        track.enabled = false
+      })
+      setIsMuted(true)
+    }
+
+    socket.on('room:force-muted', handleForceMuted)
+    return () => {
+      socket.off('room:force-muted', handleForceMuted)
+    }
+  }, [socket])
 
   function toggleMute() {
     if (!streamRef.current) return
