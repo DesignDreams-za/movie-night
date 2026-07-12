@@ -11,8 +11,17 @@ export function useMicrophone() {
   useEffect(() => {
     let cancelled = false
 
+    // Explicit rather than relying on browser defaults: echoCancellation stops
+    // the movie's own audio (leaving your speakers) from re-entering your mic
+    // and being heard by the other person.
     navigator.mediaDevices
-      .getUserMedia({ audio: true })
+      .getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      })
       .then((mediaStream) => {
         if (cancelled) {
           mediaStream.getTracks().forEach((track) => track.stop())
