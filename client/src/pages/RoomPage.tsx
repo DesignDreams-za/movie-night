@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useRoom } from '../contexts/RoomContext'
 import { UserBadge } from '../components/UserBadge'
 import { VideoPlayer } from '../components/VideoPlayer'
+import { VoiceChat } from '../components/VoiceChat'
 
 export function RoomPage() {
   const { code } = useParams<{ code: string }>()
@@ -37,9 +38,7 @@ export function RoomPage() {
       <VideoPlayer />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <section className="rounded-lg border border-border bg-surface p-4 text-sm text-gray-500">
-          Voice chat — coming soon
-        </section>
+        <VoiceChat />
         <section className="rounded-lg border border-border bg-surface p-4 text-sm text-gray-500">
           Text chat — coming soon
         </section>

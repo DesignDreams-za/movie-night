@@ -30,6 +30,20 @@ export interface VideoSyncPayload {
   isPlaying: boolean
 }
 
+// The server never inspects SDP/ICE contents, so these are typed loosely
+// here; the client types the same events with real DOM WebRTC types.
+export interface WebRTCOfferPayload {
+  sdp: unknown
+}
+
+export interface WebRTCAnswerPayload {
+  sdp: unknown
+}
+
+export interface WebRTCIceCandidatePayload {
+  candidate: unknown
+}
+
 export interface SocketData {
   roomCode?: string
 }
@@ -41,6 +55,10 @@ export interface ServerToClientEvents {
   'video:pause': (payload: VideoPausePayload) => void
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
+  'voice:ready': () => void
+  'webrtc:offer': (payload: WebRTCOfferPayload) => void
+  'webrtc:answer': (payload: WebRTCAnswerPayload) => void
+  'webrtc:ice-candidate': (payload: WebRTCIceCandidatePayload) => void
 }
 
 export interface ClientToServerEvents {
@@ -53,4 +71,8 @@ export interface ClientToServerEvents {
   'video:pause': (payload: VideoPausePayload) => void
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
+  'voice:ready': () => void
+  'webrtc:offer': (payload: WebRTCOfferPayload) => void
+  'webrtc:answer': (payload: WebRTCAnswerPayload) => void
+  'webrtc:ice-candidate': (payload: WebRTCIceCandidatePayload) => void
 }

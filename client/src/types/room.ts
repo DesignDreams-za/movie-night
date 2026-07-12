@@ -30,6 +30,18 @@ export interface VideoSyncPayload {
   isPlaying: boolean
 }
 
+export interface WebRTCOfferPayload {
+  sdp: RTCSessionDescriptionInit
+}
+
+export interface WebRTCAnswerPayload {
+  sdp: RTCSessionDescriptionInit
+}
+
+export interface WebRTCIceCandidatePayload {
+  candidate: RTCIceCandidateInit
+}
+
 export interface ServerToClientEvents {
   'user:joined': (user: RoomUser) => void
   'user:left': (userId: string) => void
@@ -37,6 +49,10 @@ export interface ServerToClientEvents {
   'video:pause': (payload: VideoPausePayload) => void
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
+  'voice:ready': () => void
+  'webrtc:offer': (payload: WebRTCOfferPayload) => void
+  'webrtc:answer': (payload: WebRTCAnswerPayload) => void
+  'webrtc:ice-candidate': (payload: WebRTCIceCandidatePayload) => void
 }
 
 export interface ClientToServerEvents {
@@ -49,4 +65,8 @@ export interface ClientToServerEvents {
   'video:pause': (payload: VideoPausePayload) => void
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
+  'voice:ready': () => void
+  'webrtc:offer': (payload: WebRTCOfferPayload) => void
+  'webrtc:answer': (payload: WebRTCAnswerPayload) => void
+  'webrtc:ice-candidate': (payload: WebRTCIceCandidatePayload) => void
 }
