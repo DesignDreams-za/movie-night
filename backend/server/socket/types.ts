@@ -28,13 +28,7 @@ export interface VideoSeekPayload {
 export interface VideoSyncPayload {
   currentTime: number
   isPlaying: boolean
-}
-
-// The file itself never leaves the device it was loaded on -- this just
-// tells the other person its name so they know what to load on their end.
-export interface VideoFileLoadedPayload {
-  name: string
-  fileName: string
+  duration: number
 }
 
 // WebRTC is peer-to-peer, so with more than two people in a room, offers/
@@ -72,6 +66,41 @@ export interface WebRTCIceCandidateIncoming {
   candidate: unknown
 }
 
+// Separate signaling channel from the voice/camera call above: the movie
+// stream is one-directional (host -> everyone else) rather than the call's
+// symmetric mesh, so it gets its own dedicated peer connection per viewer
+// instead of sharing the call's connection and needing to disambiguate
+// tracks after the fact.
+export interface MovieOfferOutgoing {
+  to: string
+  sdp: unknown
+}
+
+export interface MovieOfferIncoming {
+  from: string
+  sdp: unknown
+}
+
+export interface MovieAnswerOutgoing {
+  to: string
+  sdp: unknown
+}
+
+export interface MovieAnswerIncoming {
+  from: string
+  sdp: unknown
+}
+
+export interface MovieIceCandidateOutgoing {
+  to: string
+  candidate: unknown
+}
+
+export interface MovieIceCandidateIncoming {
+  from: string
+  candidate: unknown
+}
+
 export interface VoiceReadyBroadcast {
   userId: string
 }
@@ -105,12 +134,14 @@ export interface ServerToClientEvents {
   'video:pause': (payload: VideoPausePayload) => void
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
-  'video:file-loaded': (payload: VideoFileLoadedPayload) => void
   'voice:ready': (payload: VoiceReadyBroadcast) => void
   'voice:peers-ready': (payload: VoicePeersReadyPayload) => void
   'webrtc:offer': (payload: WebRTCOfferIncoming) => void
   'webrtc:answer': (payload: WebRTCAnswerIncoming) => void
   'webrtc:ice-candidate': (payload: WebRTCIceCandidateIncoming) => void
+  'movie:offer': (payload: MovieOfferIncoming) => void
+  'movie:answer': (payload: MovieAnswerIncoming) => void
+  'movie:ice-candidate': (payload: MovieIceCandidateIncoming) => void
   'chat:message': (message: ChatMessage) => void
   'reaction:receive': (payload: ReactionPayload) => void
   'room:kicked': () => void
@@ -127,11 +158,13 @@ export interface ClientToServerEvents {
   'video:pause': (payload: VideoPausePayload) => void
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
-  'video:file-loaded': (payload: { fileName: string }) => void
   'voice:ready': () => void
   'webrtc:offer': (payload: WebRTCOfferOutgoing) => void
   'webrtc:answer': (payload: WebRTCAnswerOutgoing) => void
   'webrtc:ice-candidate': (payload: WebRTCIceCandidateOutgoing) => void
+  'movie:offer': (payload: MovieOfferOutgoing) => void
+  'movie:answer': (payload: MovieAnswerOutgoing) => void
+  'movie:ice-candidate': (payload: MovieIceCandidateOutgoing) => void
   'chat:message': (payload: { text: string }) => void
   'reaction:send': (payload: { emoji: string }) => void
   'room:kick': (payload: { userId: string }) => void

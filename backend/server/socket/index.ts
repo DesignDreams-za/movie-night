@@ -2,6 +2,7 @@ import type { Server } from 'socket.io'
 import { registerRoomHandlers } from './rooms.js'
 import { registerVideoSyncHandlers } from './videoSync.js'
 import { registerVoiceSignalingHandlers } from './voiceSignaling.js'
+import { registerMovieSignalingHandlers } from './movieSignaling.js'
 import { registerChatHandlers } from './chat.js'
 import { registerModerationHandlers } from './moderation.js'
 import { registerReactionHandlers } from './reactions.js'
@@ -15,6 +16,7 @@ export function registerSocketHandlers(io: TypedServer) {
     registerRoomHandlers(io, socket)
     registerVideoSyncHandlers(socket)
     registerVoiceSignalingHandlers(io, socket)
+    registerMovieSignalingHandlers(io, socket)
     registerChatHandlers(io, socket)
     registerModerationHandlers(io, socket)
     registerReactionHandlers(io, socket)

@@ -28,11 +28,7 @@ export interface VideoSeekPayload {
 export interface VideoSyncPayload {
   currentTime: number
   isPlaying: boolean
-}
-
-export interface VideoFileLoadedPayload {
-  name: string
-  fileName: string
+  duration: number
 }
 
 export interface WebRTCOfferOutgoing {
@@ -61,6 +57,36 @@ export interface WebRTCIceCandidateOutgoing {
 }
 
 export interface WebRTCIceCandidateIncoming {
+  from: string
+  candidate: RTCIceCandidateInit
+}
+
+export interface MovieOfferOutgoing {
+  to: string
+  sdp: RTCSessionDescriptionInit
+}
+
+export interface MovieOfferIncoming {
+  from: string
+  sdp: RTCSessionDescriptionInit
+}
+
+export interface MovieAnswerOutgoing {
+  to: string
+  sdp: RTCSessionDescriptionInit
+}
+
+export interface MovieAnswerIncoming {
+  from: string
+  sdp: RTCSessionDescriptionInit
+}
+
+export interface MovieIceCandidateOutgoing {
+  to: string
+  candidate: RTCIceCandidateInit
+}
+
+export interface MovieIceCandidateIncoming {
   from: string
   candidate: RTCIceCandidateInit
 }
@@ -94,12 +120,14 @@ export interface ServerToClientEvents {
   'video:pause': (payload: VideoPausePayload) => void
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
-  'video:file-loaded': (payload: VideoFileLoadedPayload) => void
   'voice:ready': (payload: VoiceReadyBroadcast) => void
   'voice:peers-ready': (payload: VoicePeersReadyPayload) => void
   'webrtc:offer': (payload: WebRTCOfferIncoming) => void
   'webrtc:answer': (payload: WebRTCAnswerIncoming) => void
   'webrtc:ice-candidate': (payload: WebRTCIceCandidateIncoming) => void
+  'movie:offer': (payload: MovieOfferIncoming) => void
+  'movie:answer': (payload: MovieAnswerIncoming) => void
+  'movie:ice-candidate': (payload: MovieIceCandidateIncoming) => void
   'chat:message': (message: ChatMessage) => void
   'reaction:receive': (payload: ReactionPayload) => void
   'room:kicked': () => void
@@ -116,11 +144,13 @@ export interface ClientToServerEvents {
   'video:pause': (payload: VideoPausePayload) => void
   'video:seek': (payload: VideoSeekPayload) => void
   'video:sync': (payload: VideoSyncPayload) => void
-  'video:file-loaded': (payload: { fileName: string }) => void
   'voice:ready': () => void
   'webrtc:offer': (payload: WebRTCOfferOutgoing) => void
   'webrtc:answer': (payload: WebRTCAnswerOutgoing) => void
   'webrtc:ice-candidate': (payload: WebRTCIceCandidateOutgoing) => void
+  'movie:offer': (payload: MovieOfferOutgoing) => void
+  'movie:answer': (payload: MovieAnswerOutgoing) => void
+  'movie:ice-candidate': (payload: MovieIceCandidateOutgoing) => void
   'chat:message': (payload: { text: string }) => void
   'reaction:send': (payload: { emoji: string }) => void
   'room:kick': (payload: { userId: string }) => void
