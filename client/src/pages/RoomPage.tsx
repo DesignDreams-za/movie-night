@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useRoom } from '../contexts/RoomContext'
 import { UserBadge } from '../components/UserBadge'
+import { VideoPlayer } from '../components/VideoPlayer'
 
 export function RoomPage() {
   const { code } = useParams<{ code: string }>()
@@ -33,9 +34,7 @@ export function RoomPage() {
         </div>
       </header>
 
-      <section className="flex min-h-[320px] flex-1 items-center justify-center rounded-lg border border-border bg-surface text-sm text-gray-500">
-        Video player — coming in the next step
-      </section>
+      <VideoPlayer />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <section className="rounded-lg border border-border bg-surface p-4 text-sm text-gray-500">
