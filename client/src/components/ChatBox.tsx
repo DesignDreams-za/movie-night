@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useChat } from '../hooks/useChat'
 import { useRoom } from '../contexts/RoomContext'
 import { SendIcon } from './icons'
+import { EmojiReactionButton } from './EmojiReactionButton'
 
 function formatTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -57,7 +58,8 @@ export function ChatBox() {
         })}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+        <EmojiReactionButton />
         <input
           type="text"
           value={draft}

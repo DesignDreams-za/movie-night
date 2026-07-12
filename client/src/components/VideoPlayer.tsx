@@ -3,6 +3,7 @@ import { useVideoPlayer } from '../hooks/useVideoPlayer'
 import { useVideoSync } from '../hooks/useVideoSync'
 import { VideoControls } from './VideoControls'
 import { FullscreenChatOverlay } from './FullscreenChatOverlay'
+import { ReactionsOverlay } from './ReactionsOverlay'
 import { FilmIcon, PauseIcon, PlayIcon } from './icons'
 
 const IDLE_HIDE_MS = 2600
@@ -117,6 +118,8 @@ export function VideoPlayer() {
         onChange={handleFileInputChange}
         className="hidden"
       />
+
+      <ReactionsOverlay />
 
       {player.isFullscreen && <FullscreenChatOverlay />}
 

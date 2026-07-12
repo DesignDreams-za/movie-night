@@ -81,6 +81,12 @@ export interface ChatMessage {
   timestamp: number
 }
 
+export interface ReactionPayload {
+  id: string
+  emoji: string
+  userId: string
+}
+
 export interface SocketData {
   roomCode?: string
 }
@@ -98,6 +104,7 @@ export interface ServerToClientEvents {
   'webrtc:answer': (payload: WebRTCAnswerIncoming) => void
   'webrtc:ice-candidate': (payload: WebRTCIceCandidateIncoming) => void
   'chat:message': (message: ChatMessage) => void
+  'reaction:receive': (payload: ReactionPayload) => void
   'room:kicked': () => void
   'room:force-muted': () => void
 }
@@ -117,6 +124,7 @@ export interface ClientToServerEvents {
   'webrtc:answer': (payload: WebRTCAnswerOutgoing) => void
   'webrtc:ice-candidate': (payload: WebRTCIceCandidateOutgoing) => void
   'chat:message': (payload: { text: string }) => void
+  'reaction:send': (payload: { emoji: string }) => void
   'room:kick': (payload: { userId: string }) => void
   'room:mute-user': (payload: { userId: string }) => void
 }

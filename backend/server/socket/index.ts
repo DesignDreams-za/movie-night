@@ -4,6 +4,7 @@ import { registerVideoSyncHandlers } from './videoSync.js'
 import { registerVoiceSignalingHandlers } from './voiceSignaling.js'
 import { registerChatHandlers } from './chat.js'
 import { registerModerationHandlers } from './moderation.js'
+import { registerReactionHandlers } from './reactions.js'
 import type { ClientToServerEvents, ServerToClientEvents, SocketData } from './types.js'
 
 type TypedServer = Server<ClientToServerEvents, ServerToClientEvents, object, SocketData>
@@ -16,5 +17,6 @@ export function registerSocketHandlers(io: TypedServer) {
     registerVoiceSignalingHandlers(io, socket)
     registerChatHandlers(io, socket)
     registerModerationHandlers(io, socket)
+    registerReactionHandlers(io, socket)
   })
 }
