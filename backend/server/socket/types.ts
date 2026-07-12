@@ -44,6 +44,14 @@ export interface WebRTCIceCandidatePayload {
   candidate: unknown
 }
 
+export interface ChatMessage {
+  id: string
+  userId: string
+  name: string
+  text: string
+  timestamp: number
+}
+
 export interface SocketData {
   roomCode?: string
 }
@@ -59,6 +67,7 @@ export interface ServerToClientEvents {
   'webrtc:offer': (payload: WebRTCOfferPayload) => void
   'webrtc:answer': (payload: WebRTCAnswerPayload) => void
   'webrtc:ice-candidate': (payload: WebRTCIceCandidatePayload) => void
+  'chat:message': (message: ChatMessage) => void
 }
 
 export interface ClientToServerEvents {
@@ -75,4 +84,5 @@ export interface ClientToServerEvents {
   'webrtc:offer': (payload: WebRTCOfferPayload) => void
   'webrtc:answer': (payload: WebRTCAnswerPayload) => void
   'webrtc:ice-candidate': (payload: WebRTCIceCandidatePayload) => void
+  'chat:message': (payload: { text: string }) => void
 }

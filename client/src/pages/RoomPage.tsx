@@ -4,6 +4,7 @@ import { useRoom } from '../contexts/RoomContext'
 import { UserBadge } from '../components/UserBadge'
 import { VideoPlayer } from '../components/VideoPlayer'
 import { VoiceChat } from '../components/VoiceChat'
+import { ChatBox } from '../components/ChatBox'
 
 export function RoomPage() {
   const { code } = useParams<{ code: string }>()
@@ -39,9 +40,7 @@ export function RoomPage() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <VoiceChat />
-        <section className="rounded-lg border border-border bg-surface p-4 text-sm text-gray-500">
-          Text chat — coming soon
-        </section>
+        <ChatBox />
       </div>
 
       <p className="text-xs text-gray-600">Signed in as {you?.name}</p>
