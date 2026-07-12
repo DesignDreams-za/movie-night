@@ -1,9 +1,11 @@
 import { useRef, useState, type DragEvent } from 'react'
 import { useVideoPlayer } from '../hooks/useVideoPlayer'
+import { useVideoSync } from '../hooks/useVideoSync'
 import { VideoControls } from './VideoControls'
 
 export function VideoPlayer() {
   const player = useVideoPlayer()
+  const sync = useVideoSync(player)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
 
@@ -63,8 +65,8 @@ export function VideoPlayer() {
           volume={player.volume}
           isMuted={player.isMuted}
           isFullscreen={player.isFullscreen}
-          onTogglePlay={player.togglePlay}
-          onSeek={player.seek}
+          onTogglePlay={sync.handleTogglePlay}
+          onSeek={sync.handleSeek}
           onVolumeChange={player.changeVolume}
           onToggleMute={player.toggleMute}
           onToggleFullscreen={player.toggleFullscreen}

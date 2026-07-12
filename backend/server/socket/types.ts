@@ -13,9 +13,34 @@ export type RoomResult =
   | { ok: true; room: RoomState; you: RoomUser }
   | { ok: false; error: string }
 
+export interface VideoPlayPayload {
+  currentTime: number
+}
+
+export interface VideoPausePayload {
+  currentTime: number
+}
+
+export interface VideoSeekPayload {
+  time: number
+}
+
+export interface VideoSyncPayload {
+  currentTime: number
+  isPlaying: boolean
+}
+
+export interface SocketData {
+  roomCode?: string
+}
+
 export interface ServerToClientEvents {
   'user:joined': (user: RoomUser) => void
   'user:left': (userId: string) => void
+  'video:play': (payload: VideoPlayPayload) => void
+  'video:pause': (payload: VideoPausePayload) => void
+  'video:seek': (payload: VideoSeekPayload) => void
+  'video:sync': (payload: VideoSyncPayload) => void
 }
 
 export interface ClientToServerEvents {
@@ -24,4 +49,8 @@ export interface ClientToServerEvents {
     payload: { code: string; name: string },
     callback: (result: RoomResult) => void,
   ) => void
+  'video:play': (payload: VideoPlayPayload) => void
+  'video:pause': (payload: VideoPausePayload) => void
+  'video:seek': (payload: VideoSeekPayload) => void
+  'video:sync': (payload: VideoSyncPayload) => void
 }

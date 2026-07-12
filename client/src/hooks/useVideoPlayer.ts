@@ -113,6 +113,8 @@ export function useVideoPlayer() {
     isMuted,
     isFullscreen,
     loadFile,
+    play,
+    pause,
     togglePlay,
     seek,
     changeVolume,

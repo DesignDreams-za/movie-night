@@ -6,16 +6,17 @@ import {
   getRoom,
   removeUserBySocketId,
 } from './roomStore.js'
-import type { ClientToServerEvents, RoomUser, ServerToClientEvents } from './types.js'
+import type { ClientToServerEvents, RoomUser, ServerToClientEvents, SocketData } from './types.js'
 
-type TypedServer = Server<ClientToServerEvents, ServerToClientEvents>
-type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents>
+type TypedServer = Server<ClientToServerEvents, ServerToClientEvents, object, SocketData>
+type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents, object, SocketData>
 
 export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   socket.on('room:create', ({ name }, callback) => {
     const you: RoomUser = { id: socket.id, name, isHost: true }
     const room = createRoomWithHost(you)
     socket.join(room.code)
+    socket.data.roomCode = room.code
     callback({ ok: true, room, you })
   })
 
@@ -35,6 +36,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     const you: RoomUser = { id: socket.id, name, isHost: false }
     const updatedRoom = addUserToRoom(normalizedCode, you)
     socket.join(normalizedCode)
+    socket.data.roomCode = normalizedCode
     socket.to(normalizedCode).emit('user:joined', you)
     callback({ ok: true, room: updatedRoom, you })
   })
