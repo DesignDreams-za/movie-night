@@ -2,6 +2,7 @@ import { useRef, useState, type DragEvent } from 'react'
 import { useVideoPlayer } from '../hooks/useVideoPlayer'
 import { useVideoSync } from '../hooks/useVideoSync'
 import { VideoControls } from './VideoControls'
+import { FullscreenChatOverlay } from './FullscreenChatOverlay'
 
 export function VideoPlayer() {
   const player = useVideoPlayer()
@@ -56,6 +57,8 @@ export function VideoPlayer() {
         onChange={handleFileInputChange}
         className="hidden"
       />
+
+      {player.isFullscreen && <FullscreenChatOverlay />}
 
       {player.fileName && (
         <VideoControls

@@ -38,9 +38,11 @@ export function RoomPage() {
 
       <VideoPlayer />
 
-      <div className="grid items-start gap-4 sm:grid-cols-2">
+      <div className="flex items-start gap-4">
         <VoiceChat />
-        <ChatBox />
+        <div className="min-w-0 flex-1">
+          <ChatBox />
+        </div>
       </div>
 
       <p className="text-xs text-gray-600">Signed in as {you?.name}</p>
