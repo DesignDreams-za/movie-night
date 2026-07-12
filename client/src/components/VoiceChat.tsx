@@ -27,7 +27,7 @@ export function VoiceChat() {
   }, [volume])
 
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4">
+    <section className="flex flex-col gap-2.5 rounded-lg border border-border bg-surface p-3">
       <div className="flex items-center justify-between">
         <span className="text-sm text-gray-300">
           🎤 {mic.error ? 'Microphone unavailable' : STATUS_LABEL[status]}
@@ -46,33 +46,35 @@ export function VoiceChat() {
         </button>
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-gray-400">
-        <span className="flex items-center gap-1.5">
-          <span
-            className={`h-2 w-2 rounded-full ${isSpeakingLocally ? 'bg-online' : 'bg-offline'}`}
-          />
-          You
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span
-            className={`h-2 w-2 rounded-full ${isSpeakingRemotely ? 'bg-online' : 'bg-offline'}`}
-          />
-          Them
-        </span>
-      </div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex shrink-0 items-center gap-3 text-xs text-gray-400">
+          <span className="flex items-center gap-1.5">
+            <span
+              className={`h-2 w-2 rounded-full ${isSpeakingLocally ? 'bg-online' : 'bg-offline'}`}
+            />
+            You
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span
+              className={`h-2 w-2 rounded-full ${isSpeakingRemotely ? 'bg-online' : 'bg-offline'}`}
+            />
+            Them
+          </span>
+        </div>
 
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-500">🔊</span>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.05}
-          value={volume}
-          onChange={(e) => setVolume(Number(e.target.value))}
-          style={{ accentColor: 'var(--color-accent)' }}
-          className="h-1 flex-1 cursor-pointer"
-        />
+        <div className="flex max-w-32 flex-1 items-center gap-2">
+          <span className="text-xs text-gray-500">🔊</span>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={volume}
+            onChange={(e) => setVolume(Number(e.target.value))}
+            style={{ accentColor: 'var(--color-accent)' }}
+            className="h-1 flex-1 cursor-pointer"
+          />
+        </div>
       </div>
 
       <audio ref={audioRef} autoPlay />

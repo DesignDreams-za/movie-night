@@ -24,10 +24,10 @@ export function ChatBox() {
   }
 
   return (
-    <section className="flex flex-col rounded-lg border border-border bg-surface p-4">
-      <div ref={listRef} className="mb-3 flex max-h-56 min-h-[9rem] flex-col gap-2 overflow-y-auto">
+    <section className="flex flex-col rounded-lg border border-border bg-surface p-3">
+      <div ref={listRef} className="mb-2 flex max-h-56 flex-col gap-2 overflow-y-auto">
         {messages.length === 0 && (
-          <p className="m-auto text-xs text-gray-600">No messages yet — say hi 👋</p>
+          <p className="py-1 text-xs text-gray-600">No messages yet — say hi 👋</p>
         )}
         {messages.map((message) => {
           const isOwn = message.userId === you?.id
