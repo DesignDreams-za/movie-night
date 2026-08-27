@@ -9,4 +9,5 @@ services:
     healthCheckPath: /health
     envVars:
       - key: CLIENT_ORIGIN
-        value: https://movie-night-watchparty.netlify.app
+        # Comma-separated list of allowed front-end origins.
+        value: https://movie-night-doky.netlify.app,https://movie-night-watchparty.netlify.app

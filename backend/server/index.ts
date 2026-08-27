@@ -7,15 +7,20 @@ import { registerSocketHandlers } from './socket/index.js'
 import type { ClientToServerEvents, ServerToClientEvents, SocketData } from './socket/types.js'
 
 const PORT = process.env.PORT ?? 4000
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN ?? 'http://localhost:5173'
+// Comma-separated so the same backend can serve more than one front end
+// (production, a second deploy, local dev) without a code change each time.
+const CLIENT_ORIGINS = (process.env.CLIENT_ORIGIN ?? 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
 
 const app = express()
-app.use(cors({ origin: CLIENT_ORIGIN }))
+app.use(cors({ origin: CLIENT_ORIGINS }))
 app.use('/health', healthRouter)
 
 const httpServer = createServer(app)
 const io = new Server<ClientToServerEvents, ServerToClientEvents, object, SocketData>(httpServer, {
-  cors: { origin: CLIENT_ORIGIN },
+  cors: { origin: CLIENT_ORIGINS },
 })
 
 registerSocketHandlers(io)
