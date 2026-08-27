@@ -4,3 +4,11 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# SPA fallback: /room/:code is a client-side route with no file on disk, so
+# every path must serve index.html and let the router take over. Without this
+# a shared room link 404s.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
